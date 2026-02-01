@@ -19,6 +19,8 @@ python pbix_layout_tool.py your_model.pbix --relations relations.json
 
 Open the generated `your_model_arranged.pbix` in Power BI Desktop.
 
+![Before and after](before_and_after.png)
+
 ## How to get the `.pbit`
 
 In Power BI Desktop: **File → Save As → Power BI Template (.pbit)**
