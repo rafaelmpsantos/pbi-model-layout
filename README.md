@@ -33,6 +33,8 @@ python pbix_layout_tool.py your_model.pbix --relations relations.json
 
 Open the generated `your_model_arranged.pbix` in Power BI Desktop.
 
+![Before and after](before_and_after.png)
+
 ---
 
 ## GUI Preview (v1.2)
@@ -41,13 +43,15 @@ The preview canvas renders a live Power BI style model view directly in the tool
 
 ![Layout Preview](layout_preview.png)
 
+The preview above shows a multi-fact model (3 facts, 10 dims, 1 snowflake) rendered with the **auto** layout at 51% zoom. Facts stack on the left; dimension tables line up in a single row below with their fields visible inside each container. L-shaped lines connect fact field rows to the top edges of their dimension tables. Clicking any table highlights it and all directly related tables with a blue border.
+
 ---
 
 ## GUI Features (v1.2)
 
 ### Power BI–Style Preview Canvas
 
-The preview renders your model exactly as it will look in Power BI's Model View:
+The preview renders your model exactly as it will look in Power BI Desktop's Model View:
 
 - **Color-coded containers** - Blue = Fact, Purple = Dimension, Green = Snowflake, Gray = Other
 - **Fields inside containers** - only relationship fields shown (e.g. `dim_customer_id`), sized to fit
@@ -86,6 +90,8 @@ Check **"Create diagram tabs"** in the GUI (or use `--create-tabs` on the CLI) t
 - **Diagram 1–N**: One per fact, showing only that fact + connected dims in a star layout
 
 Switch tabs using the diagram selector in Power BI Desktop's Model View (bottom-left corner).
+
+![Tabs feature](tabs_feature.png)
 
 ---
 
@@ -161,7 +167,7 @@ Each fact followed immediately by its dims in a row to the right. Snowflake chil
 ## Workflow
 
 1. **Extract relationships**
-   - Open the GUI and use Step 1, or run `--extract-relations` on your `.pbit`
+   - Open the GUI and use Step 1 or run `--extract-relations` on your `.pbit`
    - Generates `relations.json`
 
 2. **Preview and adjust**
@@ -181,9 +187,9 @@ Each fact followed immediately by its dims in a row to the right. Snowflake chil
 
 ### v1.2 (current)
 
-- 🎨 **Power BI–style preview canvas** - containers with FK fields, L-shaped connector lines, cardinality symbols (`*` / `1`)
+- 🎨 **Power BI–style preview canvas** - containers with fields, L-shaped connector lines, cardinality symbols (`*` / `1`)
 - 🖱️ **Table click highlight** - click a table to highlight it and all directly related tables
-- 🔵 **Line click highlight** - click a relationship line to highlight it and the matching FK fields in both containers
+- 🔵 **Line click highlight** - click a relationship line to highlight it and the matching fields in both containers
 - 🔍 **Zoom-to-fit on open** - preview always opens with all tables visible
 - 🧊 **Smooth pan** - pixel-accurate panning via `xview_moveto` / `yview_moveto`
 - ❄️ **Snowflake placement** - all layout modes now place snowflake children adjacent to their parent dim
