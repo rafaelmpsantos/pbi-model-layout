@@ -4,10 +4,14 @@ Automatically arranges Power BI model diagram views into clean, relationship-awa
 
 Available as both a **command-line tool** and a **graphical interface**.
 
+---
+
 ## Requirements
 
 - Python 3.9+
 - No external packages (stdlib only)
+
+---
 
 ## Quick Start
 
@@ -16,14 +20,6 @@ Available as both a **command-line tool** and a **graphical interface**.
 ```bash
 python pbi_layout_gui.py
 ```
-
-The GUI provides:
-
-- Visual preview of layouts before applying
-- Multiple layout modes (auto, grid, horizontal, star, vertical stack)
-- Interactive drag-and-drop to fine-tune positions
-- Zoom and scroll for large models
-- Real-time layout switching
 
 ### Option 2: Command Line
 
@@ -37,112 +33,118 @@ python pbix_layout_tool.py your_model.pbix --relations relations.json
 
 Open the generated `your_model_arranged.pbix` in Power BI Desktop.
 
-![Before and after](before_and_after.png)
+---
 
-## GUI Features
+## GUI Preview (v1.2)
 
-### Interactive Preview
+The preview canvas renders a live Power BI–style model view directly in the tool - color-coded table containers, FK relationship fields, L-shaped connector lines with cardinality symbols, and interactive highlights.
 
-- **Auto-fit**: Opens with entire model visible
-- **Zoom**: Mouse wheel to zoom 20%-300%
-- **Drag tables**: Click and drag any table to reposition
-- **Scrollbars**: Navigate large diagrams
-- **Save Layout**: Explicitly save manual adjustments before applying
+![Layout Preview](layout_preview.png)
+
+The preview above shows a multi-fact model (3 facts, 10 dims, 1 snowflake) rendered with the **auto** layout at 51% zoom. Facts stack on the left; dimension tables line up in a single row below with their FK fields visible inside each container. L-shaped lines connect fact field rows to the top edges of their dimension tables. Clicking any table highlights it and all directly related tables with a blue border.
+
+---
+
+## GUI Features (v1.2)
+
+### Power BI–Style Preview Canvas
+
+The preview renders your model exactly as it will look in Power BI Desktop's Model View:
+
+- **Color-coded containers** - Blue = Fact, Purple = Dimension, Green = Snowflake, Gray = Other
+- **FK fields inside containers** - only relationship fields shown (e.g. `dim_customer_id`), sized to fit
+- **L-shaped connector lines** - facts exit the right edge, dims are entered from the top, with distributed attachment points so lines never overlap
+- **Cardinality symbols** - `*` at the fact side, `1` at the dimension side, drawn on top of containers
+- **Legend** - always visible in the top-left corner
+
+### Interactions
+
+- **Zoom** - mouse wheel, 10%–300%, all text and containers scale proportionally
+- **Pan** - click and drag the background, smooth pixel-accurate panning
+- **Drag tables** - click and drag any table to reposition; positions are cached and used when applying
+- **Click a table** - highlights the clicked table (dark blue border) and all directly related tables (light blue border)
+- **Click a relationship line** - highlights the line blue and bolds the matching FK field text in both connected containers
+- **Reset Zoom** - returns to the initial zoom-to-fit view
 
 ### Layout Modes
 
-Switch between different layout strategies in real-time:
+Switch between layout strategies using the dropdown in the preview toolbar:
 
-- **auto** - Smart layout based on model structure (star for 1 fact, grid for multiple)
-- **grid** - Facts vertical left, dims horizontal below
-- **horizontal** - Facts horizontal top, dims in columns below each
-- **star** - Radial layout with facts at center, dims in rings
-- **vertical_stack** - Facts left, dims inline to the right
+| Mode               | Description                                                        |
+| ------------------ | ------------------------------------------------------------------ |
+| **auto**           | Smart pick: star for 1 fact, grid for multiple                     |
+| **grid**           | Facts stacked left, all dims in a horizontal row below             |
+| **horizontal**     | Facts in a row at top, dims in columns below each fact             |
+| **star**           | Radial - fact at center, dims in a ring, snowflakes pushed outward |
+| **vertical_stack** | Each fact followed immediately by its dims to the right            |
 
-### Preview Controls
+All modes place snowflake tables adjacent to their parent dim (not in a remote row).
 
-- **Layout dropdown**: Switch layout modes
-- **Radius control**: Adjust spacing in star layouts (100-1000px)
-- **Zoom display**: Current zoom percentage
-- **Refresh**: Recompute layout with new settings
-- **Save Layout**: Save current positions (closes preview)
-- **Quit without Save**: Discard changes and close
-- **Apply This Layout**: Write to `.pbix` file
+### Diagram Tabs
 
-### Visual Features
+Check **"Create diagram tabs"** in the GUI (or use `--create-tabs` on the CLI) to generate focused views - one tab per fact table:
 
-- **Color-coded tables**:
-  - Blue = Fact tables
-  - Red = Dimensions
-  - Green = Snowflake dimensions
-- **Relationship info boxes**: Shows connections below each dim/snowflake
+- **Diagram 0** (master): All tables in chosen layout
+- **Diagram 1–N**: One per fact, showing only that fact + connected dims in a star layout
+
+Switch tabs using the diagram selector in Power BI Desktop's Model View (bottom-left corner).
+
+---
 
 ## How to get the `.pbit`
 
 In Power BI Desktop: **File → Save As → Power BI Template (.pbit)**
 
-The `.pbit` is a ZIP containing a human-readable `DataModelSchema` with all table relationships. The extractor reads that file to build `relations.json`.
+The `.pbit` is a ZIP containing a human-readable `DataModelSchema` with all relationships. The extractor reads it automatically and writes `relations.json`.
+
+---
 
 ## Layout Modes Explained
 
 ### Auto Mode
 
-Automatically picks the best layout:
+Picks the best layout for your model:
 
-- **Single fact** → Star layout (fact center, dims in ring)
-- **Multiple facts** → Grid layout (facts left, dims below)
+- **Single fact** → Star (fact center, dims in ring)
+- **Multiple facts** → Grid (facts left column, dims below)
 
 ### Grid Layout
 
 ```
 fct_Orders
-fct_Inventory          dim_A  dim_B  dim_C  ...  dim_Parent  dim_Child
+fct_Inventory     dim_A  dim_B  dim_C  ...  dim_Parent  dim_Child
 fct_WebSessions
 ```
 
-Facts stack vertically on the left, all dims line up horizontally below with generous spacing.
-
 ### Horizontal Layout
 
-Facts arranged horizontally across the top, each with its dims in a column below.
+Facts across the top, each fact's dims stacked in a column below it. Snowflake children placed directly below their parent dim.
 
 ### Star Layout
 
-Facts at center with dimensions radiating outward in a ring. For multiple facts, creates multiple star clusters.
+Fact at center, dims radiate outward in a ring. Snowflake children pushed further out along the same angle as their parent dim. For multiple facts, creates a 2-column grid of star clusters.
 
 ### Vertical Stack
 
-Facts in left column, dimensions inline to the right (same row), snowflakes below their parent dims.
+Each fact followed immediately by its dims in a row to the right. Snowflake children placed inline after their parent dim. Orphan dims collected below.
 
-## Diagram Tabs
-
-Add `--create-tabs` (CLI) or check the option in GUI to generate focused views - one tab per fact table:
-
-```bash
-python pbix_layout_tool.py model.pbix --relations relations.json --create-tabs
-```
-
-This creates:
-
-- **Diagram 0** (master): All tables in chosen layout
-- **Diagram 1-N**: One tab per fact, showing only that fact + connected dims in star layout
-
-Switch between tabs using the diagram selector in Power BI Desktop's Model View (bottom left).
-
-![Tabs feature](tabs_feature.png)
+---
 
 ## Command-Line Options
 
-| Flag                   | Default                 | Description                                        |
-| ---------------------- | ----------------------- | -------------------------------------------------- |
-| `--output FILE`        | `input_arranged.pbix`   | Output path                                        |
-| `--relations FILE`     | —                       | Path to `relations.json`                           |
-| `--fact-prefixes`      | `fct_,fact_,FCT_,FACT_` | Comma-separated fact table prefixes                |
-| `--dim-prefixes`       | `dim_,DIM_,Dim_,d_,D_`  | Comma-separated dim table prefixes                 |
-| `--radius N`           | `520`                   | Star layout: radius from fact to dim ring          |
-| `--create-tabs`        | —                       | Generate focused diagram tabs (one per fact table) |
-| `--extract-relations`  | —                       | Extract relationships from a `.pbit`               |
-| `--generate-relations` | —                       | Print a blank `relations.json` template            |
+| Flag                   | Default                 | Description                                  |
+| ---------------------- | ----------------------- | -------------------------------------------- |
+| `--output FILE`        | `input_arranged.pbix`   | Output path                                  |
+| `--relations FILE`     | -                       | Path to `relations.json`                     |
+| `--fact-prefixes`      | `fct_,fact_,FCT_,FACT_` | Comma-separated fact table prefixes          |
+| `--dim-prefixes`       | `dim_,DIM_,Dim_,d_,D_`  | Comma-separated dim table prefixes           |
+| `--radius N`           | `520`                   | Star layout: radius from fact to dim ring    |
+| `--create-tabs`        | -                       | Generate focused diagram tabs (one per fact) |
+| `--extract-relations`  | -                       | Extract relationships from a `.pbit`         |
+| `--generate-relations` | -                       | Print a blank `relations.json` template      |
+| `--dry-run`            | -                       | Print layout plan without writing anything   |
+
+---
 
 ## `relations.json` Format
 
@@ -154,33 +156,64 @@ Switch between tabs using the diagram selector in Power BI Desktop's Model View 
 ]
 ```
 
-Each entry is one relationship. `"from"` is the many-side (fact or parent dim), `"to"` is the one-side (dim or child dim). The tool infers which is which from the prefixes, so the direction here is just for readability.
+`"from"` is the many-side (fact or parent dim), `"to"` is the one-side (dim or child dim). Direction is for readability only - the tool infers roles from prefixes.
 
-## Workflow Example
+---
 
-1. **Extract relationships**:
-   - Open GUI or run `--extract-relations` on your `.pbit`
+## Workflow
+
+1. **Extract relationships**
+   - Open the GUI and use Step 1, or run `--extract-relations` on your `.pbit`
    - Generates `relations.json`
 
-2. **Preview and adjust**:
-   - Open GUI, select your `.pbix` and `relations.json`
-   - Click "Preview Layout"
-   - Try different layout modes
-   - Drag tables to fine-tune positions
-   - Click "Save Layout" when satisfied
+2. **Preview and adjust**
+   - Select your `.pbix` and `relations.json` in the GUI
+   - Click **Preview Layout**
+   - Try different layout modes, zoom in/out, drag tables to fine-tune
+   - Click any table to see its relationships highlighted
 
-3. **Apply**:
-   - Click "Apply Layout" in main window
+3. **Apply**
+   - Click **Apply This Layout** (from preview) or **Apply Layout** (from main window)
    - Output written to `*_arranged.pbix`
-   - Open in Power BI Desktop
+   - Open in Power BI Desktop → Model View
+
+---
+
+## Changelog
+
+### v1.2 (current)
+
+- 🎨 **Power BI–style preview canvas** - containers with FK fields, L-shaped connector lines, cardinality symbols (`*` / `1`)
+- 🖱️ **Table click highlight** - click a table to highlight it and all directly related tables
+- 🔵 **Line click highlight** - click a relationship line to highlight it and the matching FK fields in both containers
+- 🔍 **Zoom-to-fit on open** - preview always opens with all tables visible
+- 🧊 **Smooth pan** - pixel-accurate panning via `xview_moveto` / `yview_moveto`
+- ❄️ **Snowflake placement** - all layout modes now place snowflake children adjacent to their parent dim
+- 📐 **Dynamic container sizing** - container width and height computed from table name length and field count
+
+### v2.1 / v1.1
+
+- Tkinter GUI with 5 layout algorithms
+- Interactive drag-and-drop positioning
+- Zoom/scroll controls
+- Two-step extract-then-apply workflow
+
+---
 
 ## Files
 
-- `pbix_layout_tool.py` - Core layout engine (CLI)
-- `pbi_layout_gui.py` - Graphical interface
-- `relations.json` - Extracted relationships
-- `before_and_after.png` - Example screenshot
-- `tabs_feature.png` - Tabs feature screenshot
+| File                       | Description                               |
+| -------------------------- | ----------------------------------------- |
+| `pbix_layout_tool.py`      | Core layout engine + CLI                  |
+| `pbi_layout_gui.py`        | Graphical interface (v1.2)                |
+| `layout_preview.png`       | Preview canvas screenshot                 |
+| `before_and_after.png`     | Before/after model view comparison        |
+| `demo_model.pbix`          | Sample Power BI model                     |
+| `demo_model.pbit`          | Sample template (for relation extraction) |
+| `demo_model_arranged.pbix` | Sample output                             |
+| `data/`                    | Sample data used in demo model            |
+
+---
 
 ## License
 
