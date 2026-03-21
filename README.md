@@ -37,11 +37,9 @@ Open the generated `your_model_arranged.pbix` in Power BI Desktop.
 
 ## GUI Preview (v1.2)
 
-The preview canvas renders a live Power BI–style model view directly in the tool - color-coded table containers, FK relationship fields, L-shaped connector lines with cardinality symbols, and interactive highlights.
+The preview canvas renders a live Power BI style model view directly in the tool - color-coded table containers, relationship fields, L-shaped connector lines with cardinality symbols and interactive highlights.
 
 ![Layout Preview](layout_preview.png)
-
-The preview above shows a multi-fact model (3 facts, 10 dims, 1 snowflake) rendered with the **auto** layout at 51% zoom. Facts stack on the left; dimension tables line up in a single row below with their FK fields visible inside each container. L-shaped lines connect fact field rows to the top edges of their dimension tables. Clicking any table highlights it and all directly related tables with a blue border.
 
 ---
 
@@ -49,10 +47,10 @@ The preview above shows a multi-fact model (3 facts, 10 dims, 1 snowflake) rende
 
 ### Power BI–Style Preview Canvas
 
-The preview renders your model exactly as it will look in Power BI Desktop's Model View:
+The preview renders your model exactly as it will look in Power BI's Model View:
 
 - **Color-coded containers** - Blue = Fact, Purple = Dimension, Green = Snowflake, Gray = Other
-- **FK fields inside containers** - only relationship fields shown (e.g. `dim_customer_id`), sized to fit
+- **Fields inside containers** - only relationship fields shown (e.g. `dim_customer_id`), sized to fit
 - **L-shaped connector lines** - facts exit the right edge, dims are entered from the top, with distributed attachment points so lines never overlap
 - **Cardinality symbols** - `*` at the fact side, `1` at the dimension side, drawn on top of containers
 - **Legend** - always visible in the top-left corner
@@ -63,7 +61,7 @@ The preview renders your model exactly as it will look in Power BI Desktop's Mod
 - **Pan** - click and drag the background, smooth pixel-accurate panning
 - **Drag tables** - click and drag any table to reposition; positions are cached and used when applying
 - **Click a table** - highlights the clicked table (dark blue border) and all directly related tables (light blue border)
-- **Click a relationship line** - highlights the line blue and bolds the matching FK field text in both connected containers
+- **Click a relationship line** - highlights the line blue and bolds the matching field text in both connected containers
 - **Reset Zoom** - returns to the initial zoom-to-fit view
 
 ### Layout Modes
