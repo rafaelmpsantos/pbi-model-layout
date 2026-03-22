@@ -646,7 +646,7 @@ def _decode_json_from_raw(raw, debug=False):
     return None
 
 
-def _load_pbit_json(pbit_path, internal_name, debug=False):
+def _load_pbit_json(pbit_path, internal_name, debug=False, required=True):
     with zipfile.ZipFile(pbit_path, "r") as zf:
         target_file = None
         for name in zf.namelist():
@@ -654,6 +654,8 @@ def _load_pbit_json(pbit_path, internal_name, debug=False):
                 target_file = name
                 break
         if target_file is None:
+            if not required:
+                return None
             raise FileNotFoundError(
                 f"No {internal_name} found in this .pbit.\n"
                 "Make sure you saved as Power BI Template (.pbit) in PBI Desktop."
@@ -664,15 +666,28 @@ def _load_pbit_json(pbit_path, internal_name, debug=False):
         print(f"\n[DEBUG] File inside .pbit: {target_file}")
     payload = _decode_json_from_raw(raw, debug=debug)
     if payload is None:
-        print(f"[ERROR] Could not parse {internal_name}.")
-        print("        Run with --debug-pbit to see the raw bytes for diagnosis.")
-        sys.exit(1)
+        if not required:
+            return None
+        raise ValueError(
+            f"Could not parse {internal_name}. "
+            "Run with --debug-pbit to inspect the raw bytes."
+        )
     return payload
 
 
 def _parse_measure_dependencies(expression):
     if not expression:
         return set(), set()
+    if isinstance(expression, bytes):
+        try:
+            expression = expression.decode("utf-8", errors="ignore")
+        except Exception:
+            expression = str(expression)
+    elif not isinstance(expression, str):
+        if isinstance(expression, (dict, list)):
+            expression = json.dumps(expression, ensure_ascii=False)
+        else:
+            expression = str(expression)
     refs = re.findall(r"([A-Za-z0-9_ ]+)\[([^\]]+)\]", expression)
     tables = set()
     columns_or_measures = set()
@@ -722,7 +737,7 @@ def extract_pbit_model_insights(pbit_path):
     relationships, measures + definitions, pages, visuals, and unused assets.
     """
     schema = _load_pbit_json(pbit_path, "DataModelSchema")
-    layout = _load_pbit_json(pbit_path, "Report/Layout")
+    layout = _load_pbit_json(pbit_path, "Report/Layout", required=False) or {}
 
     model = schema.get("model", schema.get("Model", {}))
     raw_rels = model.get("relationships", model.get("Relationships", []))
@@ -836,6 +851,7 @@ def extract_pbit_model_insights(pbit_path):
         "page_count": len(pages),
         "visual_count": sum(p["visual_count"] for p in pages),
         "tables": all_tables,
+        "table_columns": table_columns,
         "relations": relations,
         "measures": measures,
         "pages": pages,
