@@ -52,7 +52,9 @@
       .rf-role-row { display: grid; grid-template-columns: minmax(0, 1fr) 132px; gap: .55rem; align-items: center; }
       .rf-role-name { color: #334155; font-size: .88rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .rf-role-select { width: 100%; border: 1px solid #cbd5e1; border-radius: 10px; padding: .5rem .65rem; background: #fff; color: #0f172a; }
-      .rf-canvas { flex: 1; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: radial-gradient(circle at top left, #ffffff 0%, #f6f9fc 55%, #edf3f8 100%); min-height: 620px; }
+      .rf-canvas { position: relative; flex: 1; border: 1px solid #e2e8f0; border-radius: 12px; overflow: visible; background: radial-gradient(circle at top left, #ffffff 0%, #f6f9fc 55%, #edf3f8 100%); min-height: 620px; }
+      .rf-canvas .react-flow { border-radius: 12px; overflow: hidden; }
+      .rf-canvas .react-flow__panel { z-index: 20; }
       .rf-shell:fullscreen { padding: 1rem; background: #f8fafc; }
       .rf-shell:fullscreen .rf-canvas { min-height: calc(100vh - 160px); }
       .rf-panel { width: min(230px, calc(100vw - 4rem)); border: 1px solid rgba(203, 213, 225, 0.9); border-radius: 14px; background: rgba(255, 255, 255, 0.88); backdrop-filter: blur(12px); box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08); overflow: hidden; }
@@ -75,6 +77,8 @@
       .rf-chip { display: inline-flex; align-items: center; padding: .3rem .62rem; border-radius: 999px; background: #dbeafe; color: #1d4ed8; font-size: .8rem; font-weight: 700; }
       .rf-filter-list { max-height: 280px; overflow: auto; display: flex; flex-direction: column; gap: .35rem; }
       .rf-filter-item { display: flex; align-items: center; gap: .55rem; font-size: .92rem; color: #334155; }
+      .rf-filter-toggle { display: flex; align-items: center; gap: .55rem; margin-top: .8rem; color: #334155; font-size: .88rem; font-weight: 600; }
+      .rf-filter-toggle input { margin: 0; }
       .rf-filter-empty { color: #64748b; font-size: .92rem; }
       .rf-node { position: relative; border-radius: 12px; background: #ffffff; border: 2px solid #cbd5e1; box-shadow: 0 14px 34px rgba(15, 23, 42, 0.14); overflow: hidden; }
       .rf-node.selected { box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.18), 0 16px 40px rgba(37, 99, 235, 0.22); }

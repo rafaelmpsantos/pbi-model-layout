@@ -59,6 +59,51 @@ function placeRow(nodes, centerX, y, gap = 84) {
   return positions;
 }
 
+function snapshotNodePositions(nodeList) {
+  const positions = {};
+  (nodeList || []).forEach((node) => {
+    positions[node.id] = {
+      x: node.position?.x ?? 0,
+      y: node.position?.y ?? 0,
+    };
+  });
+  return positions;
+}
+
+function mergeNodePositions(nodeList, defaultPositions, savedPositions) {
+  return (nodeList || []).map((node) => ({
+    ...node,
+    position: savedPositions?.[node.id] || defaultPositions.get(node.id) || node.position,
+  }));
+}
+
+function buildColumnHandle(prefix, columnName) {
+  return `${prefix}::${columnName || "__default__"}`;
+}
+
+function resolveEdgeHandles(edge, sourceNode, targetNode) {
+  if (!sourceNode || !targetNode) {
+    return {
+      sourceHandle: edge.sourceHandle,
+      targetHandle: edge.targetHandle,
+    };
+  }
+
+  const sourceCenterX = (sourceNode.position?.x || 0) + ((sourceNode.data?.width || 260) / 2);
+  const targetCenterX = (targetNode.position?.x || 0) + ((targetNode.data?.width || 260) / 2);
+  const sourceOnLeft = sourceCenterX <= targetCenterX;
+
+  return {
+    sourceHandle: buildColumnHandle(sourceOnLeft ? "right-source" : "left-source", edge.data?.fromColumn),
+    targetHandle: buildColumnHandle(sourceOnLeft ? "left-target" : "right-target", edge.data?.toColumn),
+  };
+}
+
+function isLocalDateTableName(name) {
+  const normalized = (name || "").toLowerCase();
+  return normalized.includes("localdate table") || normalized.includes("localdatetable");
+}
+
 function buildFilteredLayout(baseNodes, baseEdges, selectedTables, visibleTableIds) {
   if (!selectedTables.length) {
     return new Map((baseNodes || []).map((node) => [node.id, node.position]));
@@ -385,7 +430,8 @@ function FlowDiagram({ graph, texts }) {
   const shellRef = useRef(null);
   const filterPanelRef = useRef(null);
   const rolePanelRef = useRef(null);
-  const [nodes, setNodes, onNodesChange] = useNodesState(graph.nodes || []);
+  const isRestoringViewportRef = useRef(false);
+  const [nodes, setNodes, baseOnNodesChange] = useNodesState(graph.nodes || []);
   const [edges, , onEdgesChange] = useEdgesState(graph.edges || []);
   const [selectedTables, setSelectedTables] = useState([]);
   const [customViews, setCustomViews] = useState([]);
@@ -396,9 +442,12 @@ function FlowDiagram({ graph, texts }) {
   const [roleSearch, setRoleSearch] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [pendingFitIds, setPendingFitIds] = useState(null);
+  const [pendingViewport, setPendingViewport] = useState(null);
+  const [showLocalDateTables, setShowLocalDateTables] = useState(true);
   const [factPrefixesText, setFactPrefixesText] = useState(DEFAULT_FACT_PREFIXES.join(", "));
   const [dimPrefixesText, setDimPrefixesText] = useState(DEFAULT_DIM_PREFIXES.join(", "));
   const [manualRoles, setManualRoles] = useState({});
+  const [savedLayouts, setSavedLayouts] = useState({});
   const reactFlow = useReactFlow();
 
   const hoveredEdge = useMemo(
@@ -408,9 +457,17 @@ function FlowDiagram({ graph, texts }) {
 
   const baseNodes = useMemo(() => graph.nodes || [], [graph.nodes]);
 
+  const availableNodes = useMemo(
+    () =>
+      showLocalDateTables
+        ? baseNodes
+        : baseNodes.filter((node) => !isLocalDateTableName(node.id)),
+    [baseNodes, showLocalDateTables]
+  );
+
   const allTableNames = useMemo(
-    () => (graph.nodes || []).map((node) => node.id).sort((a, b) => a.localeCompare(b)),
-    [graph.nodes]
+    () => availableNodes.map((node) => node.id).sort((a, b) => a.localeCompare(b)),
+    [availableNodes]
   );
 
   const factPrefixes = useMemo(() => parsePrefixList(factPrefixesText), [factPrefixesText]);
@@ -435,14 +492,14 @@ function FlowDiagram({ graph, texts }) {
 
   const layoutNodes = useMemo(
     () =>
-      baseNodes.map((node) => ({
+      availableNodes.map((node) => ({
         ...node,
         data: {
           ...node.data,
           role: effectiveRoles.get(node.id) || node.data?.role || "other",
         },
       })),
-    [baseNodes, effectiveRoles]
+    [availableNodes, effectiveRoles]
   );
 
   const factViews = useMemo(
@@ -460,19 +517,36 @@ function FlowDiagram({ graph, texts }) {
   );
 
   const visibleTableIds = useMemo(() => {
+    const availableTableIds = new Set(allTableNames);
     if (!selectedTables.length) {
-      return new Set(allTableNames);
+      return availableTableIds;
     }
 
-    const visible = new Set(selectedTables);
+    const visible = new Set(selectedTables.filter((name) => availableTableIds.has(name)));
     (graph.edges || []).forEach((edge) => {
       if (selectedTables.includes(edge.source) || selectedTables.includes(edge.target)) {
-        visible.add(edge.source);
-        visible.add(edge.target);
+        if (availableTableIds.has(edge.source)) {
+          visible.add(edge.source);
+        }
+        if (availableTableIds.has(edge.target)) {
+          visible.add(edge.target);
+        }
       }
     });
     return visible;
   }, [allTableNames, graph.edges, selectedTables]);
+
+  useEffect(() => {
+    setSelectedTables((current) => current.filter((name) => allTableNames.includes(name)));
+  }, [allTableNames]);
+
+  const activeLayoutKey = useMemo(() => {
+    if (activeViewId === "selection") {
+      const selectedKey = [...selectedTables].sort((a, b) => a.localeCompare(b)).join("|");
+      return selectedKey ? `selection:${selectedKey}` : "all";
+    }
+    return activeViewId || "all";
+  }, [activeViewId, selectedTables]);
 
   const activeTables = useMemo(() => {
     if (!hoveredEdge) {
@@ -542,20 +616,28 @@ function FlowDiagram({ graph, texts }) {
   );
 
   const flowEdges = useMemo(
-    () =>
-      edges.map((edge) => ({
-        ...edge,
-        hidden: !(visibleTableIds.has(edge.source) && visibleTableIds.has(edge.target)),
-        selected: edge.id === hoveredEdgeId,
-        data: {
-          ...edge.data,
-          isDimmed: Boolean(hoveredEdgeId && edge.id !== hoveredEdgeId),
-          onHoverStart: (event) => startEdgeHover(edge, event),
-          onHoverMove: (event) => moveEdgeHover(edge, event),
-          onHoverEnd: endEdgeHover,
-        },
-      })),
-    [edges, hoveredEdgeId, visibleTableIds]
+    () => {
+      const nodesById = new Map(nodes.map((node) => [node.id, node]));
+      return edges.map((edge) => {
+        const sourceNode = nodesById.get(edge.source);
+        const targetNode = nodesById.get(edge.target);
+        const handles = resolveEdgeHandles(edge, sourceNode, targetNode);
+        return {
+          ...edge,
+          ...handles,
+          hidden: !(visibleTableIds.has(edge.source) && visibleTableIds.has(edge.target)),
+          selected: edge.id === hoveredEdgeId,
+          data: {
+            ...edge.data,
+            isDimmed: Boolean(hoveredEdgeId && edge.id !== hoveredEdgeId),
+            onHoverStart: (event) => startEdgeHover(edge, event),
+            onHoverMove: (event) => moveEdgeHover(edge, event),
+            onHoverEnd: endEdgeHover,
+          },
+        };
+      });
+    },
+    [edges, hoveredEdgeId, nodes, visibleTableIds]
   );
 
   const filteredTableNames = useMemo(() => {
@@ -581,6 +663,20 @@ function FlowDiagram({ graph, texts }) {
         });
       });
     });
+  };
+
+  const saveCurrentLayout = (nodeList = reactFlow.getNodes(), viewport = reactFlow.getViewport()) => {
+    setSavedLayouts((current) => ({
+      ...current,
+      [activeLayoutKey]: {
+        positions: snapshotNodePositions(nodeList),
+        viewport,
+      },
+    }));
+  };
+
+  const onNodesChange = (changes) => {
+    baseOnNodesChange(changes);
   };
 
   const applyViewSelection = (viewId, tables) => {
@@ -654,14 +750,16 @@ function FlowDiagram({ graph, texts }) {
 
   useEffect(() => {
     const nextPositions = buildFilteredLayout(layoutNodes, graph.edges || [], selectedTables, visibleTableIds);
-    setNodes((current) =>
-      current.map((node) => ({
-        ...node,
-        position: nextPositions.get(node.id) || node.position,
-      }))
-    );
+    const savedLayout = savedLayouts[activeLayoutKey];
+    setNodes(mergeNodePositions(layoutNodes, nextPositions, savedLayout?.positions));
+    if (savedLayout?.viewport) {
+      setPendingViewport(savedLayout.viewport);
+      setPendingFitIds(null);
+      return;
+    }
+    setPendingViewport(null);
     setPendingFitIds([...visibleTableIds]);
-  }, [graph.edges, layoutNodes, selectedTables, setNodes, visibleTableIds]);
+  }, [activeLayoutKey, graph.edges, layoutNodes, selectedTables, setNodes, visibleTableIds]);
 
   useEffect(() => {
     if (!pendingFitIds) {
@@ -670,6 +768,20 @@ function FlowDiagram({ graph, texts }) {
     fitDiagram(selectedTables.length ? 220 : 180, pendingFitIds);
     setPendingFitIds(null);
   }, [pendingFitIds, reactFlow, selectedTables]);
+
+  useEffect(() => {
+    if (!pendingViewport) {
+      return;
+    }
+    requestAnimationFrame(() => {
+      isRestoringViewportRef.current = true;
+      reactFlow.setViewport(pendingViewport, { duration: 180 });
+      window.setTimeout(() => {
+        isRestoringViewportRef.current = false;
+      }, 220);
+      setPendingViewport(null);
+    });
+  }, [pendingViewport, reactFlow]);
 
   useEffect(() => {
     if (!selectedTables.length && activeViewId === "selection") {
@@ -762,13 +874,19 @@ function FlowDiagram({ graph, texts }) {
   };
 
   const resetLayoutView = () => {
-    setNodes(graph.nodes || []);
+    const defaultPositions = buildFilteredLayout(layoutNodes, graph.edges || [], selectedTables, visibleTableIds);
+    setSavedLayouts((current) => {
+      const next = { ...current };
+      delete next[activeLayoutKey];
+      return next;
+    });
+    setNodes(mergeNodePositions(layoutNodes, defaultPositions));
     setHoveredEdgeId(null);
     setTooltip(null);
     setSearch("");
     setRoleSearch("");
-    applyViewSelection("all", []);
-    fitDiagram(250, allTableNames);
+    setPendingViewport(null);
+    setPendingFitIds([...visibleTableIds]);
   };
 
   const closeFilterPanel = () => {
@@ -876,6 +994,14 @@ function FlowDiagram({ graph, texts }) {
           edgeTypes: { relationshipEdge: RelationshipEdge },
           onNodesChange,
           onEdgesChange,
+          onNodeDragStop: () => saveCurrentLayout(reactFlow.getNodes()),
+          onNodeDrag: () => setPendingViewport(null),
+          onMoveEnd: (event, viewport) => {
+            if (isRestoringViewportRef.current) {
+              return;
+            }
+            saveCurrentLayout(reactFlow.getNodes(), viewport);
+          },
           onPaneClick: () => {
             endEdgeHover();
             closeFilterPanel();
@@ -965,6 +1091,20 @@ function FlowDiagram({ graph, texts }) {
                 placeholder: texts.table_filter_placeholder,
                 onChange: (event) => setSearch(event.target.value),
               }),
+              React.createElement(
+                "label",
+                { className: "rf-filter-toggle" },
+                React.createElement("input", {
+                  type: "checkbox",
+                  checked: showLocalDateTables,
+                  onChange: (event) => setShowLocalDateTables(event.target.checked),
+                }),
+                React.createElement(
+                  "span",
+                  null,
+                  texts.toggle_local_date_tables || "Show LocalDate Table tables"
+                )
+              ),
               React.createElement(
                 "div",
                 { className: "rf-panel-actions" },
