@@ -45,6 +45,12 @@
         <h2>Resultado</h2>
         <p><strong>Arquivo:</strong> {{ result.file_name }}</p>
         <p><strong>Total de relacionamentos:</strong> {{ result.relationship_count }}</p>
+        <p>
+          <strong>Tabelas:</strong> {{ result.table_count }} |
+          <strong>Medidas:</strong> {{ result.measure_count }} |
+          <strong>Páginas:</strong> {{ result.page_count }} |
+          <strong>Visuais:</strong> {{ result.visual_count }}
+        </p>
 
         <h3>Diagrama de relacionamento</h3>
         <div class="diagram-shell">
@@ -77,6 +83,68 @@
             {% endfor %}
           </tbody>
         </table>
+
+        <h3>Medidas e definições</h3>
+        {% if result.measures %}
+          <table>
+            <thead>
+              <tr>
+                <th>Tabela</th>
+                <th>Medida</th>
+                <th>Definição (DAX)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for measure in result.measures %}
+                <tr>
+                  <td>{{ measure.table }}</td>
+                  <td>{{ measure.name }}</td>
+                  <td><code>{{ measure.expression or "-" }}</code></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <p>Nenhuma medida encontrada no modelo.</p>
+        {% endif %}
+
+        <h3>Páginas e visuais</h3>
+        {% if result.pages %}
+          <table>
+            <thead>
+              <tr>
+                <th>Página</th>
+                <th>Quantidade de visuais</th>
+                <th>Tipos de visual</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for page in result.pages %}
+                <tr>
+                  <td>{{ page.name }}</td>
+                  <td>{{ page.visual_count }}</td>
+                  <td>
+                    {% if page.visuals %}
+                      {{ page.visuals | map(attribute='visual_type') | join(', ') }}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% endif %}
+
+        <h3>Itens potencialmente não utilizados</h3>
+        <p>
+          Tabelas: {{ result.unused.table_count }},
+          Medidas: {{ result.unused.measure_count }},
+          Colunas: {{ result.unused.column_count }}
+        </p>
+        {% if result.unused.tables %}
+          <p><strong>Tabelas sem uso detectado:</strong> {{ result.unused.tables | join(', ') }}</p>
+        {% endif %}
       </div>
     {% endif %}
     <script>
