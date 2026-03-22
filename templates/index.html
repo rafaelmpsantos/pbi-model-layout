@@ -40,6 +40,12 @@
         <p><strong>Arquivo:</strong> {{ result.file_name }}</p>
         <p><strong>Total de relacionamentos:</strong> {{ result.relationship_count }}</p>
 
+        <h3>Diagrama de relacionamento</h3>
+        <div style="border: 1px solid #d9d9d9; border-radius: 10px; overflow: auto; background: #fff;">
+          {{ result.diagram_svg | safe }}
+        </div>
+
+        <h3>Tabela de relações</h3>
         <table>
           <thead>
             <tr>

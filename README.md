@@ -42,6 +42,7 @@ python web_app.py
 ```
 
 Then open `http://localhost:8000`, upload your `.pbit`, and the UI will return the extracted relationships.
+The result screen also renders a relationship diagram (SVG) inspired by the GUI layout logic.
 
 API endpoint:
 
