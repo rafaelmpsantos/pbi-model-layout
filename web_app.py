@@ -92,7 +92,8 @@ def _build_diagram_svg(relations: list[dict]) -> str:
         y2 = dy + dh / 2
         mid_x = (x1 + x2) / 2
         relation_lines.append(
-            f'<path d="M {x1:.1f} {y1:.1f} L {mid_x:.1f} {y1:.1f} L {mid_x:.1f} {y2:.1f} L {x2:.1f} {y2:.1f}" '
+            f'<path class="relation-line" data-src="{escape(src)}" data-dst="{escape(dst)}" '
+            f'd="M {x1:.1f} {y1:.1f} L {mid_x:.1f} {y1:.1f} L {mid_x:.1f} {y2:.1f} L {x2:.1f} {y2:.1f}" '
             'stroke="#9aa6b2" stroke-width="2" fill="none" />'
         )
 
@@ -112,20 +113,27 @@ def _build_diagram_svg(relations: list[dict]) -> str:
             fill = "#eceff1"
             stroke = "#607d8b"
         nodes.append(
-            f'<rect x="{x:.1f}" y="{y:.1f}" rx="8" ry="8" width="{w}" height="{h}" '
+            f'<g class="node" data-name="{escape(name)}" data-width="{w}" data-height="{h}" '
+            f'transform="translate({x:.1f},{y:.1f})">'
+            f'<rect x="0" y="0" rx="8" ry="8" width="{w}" height="{h}" '
             f'fill="{fill}" stroke="{stroke}" stroke-width="2" />'
-        )
-        nodes.append(
-            f'<text x="{x + 12:.1f}" y="{y + 50:.1f}" font-family="Segoe UI, Arial" '
+            f'<text x="12" y="50" font-family="Segoe UI, Arial" '
             f'font-size="14" fill="#1f2937">{escape(name)}</text>'
+            "</g>"
         )
 
     return (
-        f'<svg viewBox="0 0 {width} {height}" width="100%" height="640" '
+        f'<svg id="relationship-diagram" viewBox="0 0 {width} {height}" width="100%" height="640" '
         'xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagrama de relacionamentos">'
         '<rect width="100%" height="100%" fill="#ffffff" />'
+        '<g id="relationship-content">'
+        '<g id="relationship-edges">'
         + "".join(relation_lines)
+        + "</g>"
+        '<g id="relationship-nodes">'
         + "".join(nodes)
+        + "</g>"
+        "</g>"
         + "</svg>"
     )
 
