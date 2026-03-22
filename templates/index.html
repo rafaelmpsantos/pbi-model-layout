@@ -20,17 +20,11 @@
       .brand-copy { min-width: 0; }
       .brand-kicker { display: inline-flex; align-items: center; padding: .14rem .42rem; border-radius: 999px; background: #dbeafe; color: #1d4ed8; font-size: .64rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
       .brand-title { margin-top: .18rem; font-size: .86rem; font-weight: 800; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .page-header { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(340px, .72fr); gap: .6rem; margin: .45rem 0 .55rem; }
-      .hero-card { position: relative; overflow: hidden; padding: .8rem .95rem; min-height: 0; }
-      .hero-card::before { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at top right, rgba(96, 165, 250, 0.2), transparent 38%), radial-gradient(circle at bottom left, rgba(15, 23, 42, 0.06), transparent 36%); pointer-events: none; }
-      .hero-card > * { position: relative; }
-      .hero-title { margin: .05rem 0 .25rem; font-size: clamp(1.05rem, 1.9vw, 1.55rem); line-height: 1.02; letter-spacing: -.03em; max-width: 18ch; }
-      .hero-description { margin: 0; font-size: .74rem; color: #475569; max-width: 64ch; line-height: 1.3; }
-      .hero-meta { display: flex; flex-wrap: wrap; gap: .32rem; margin-top: .5rem; }
-      .hero-chip { display: inline-flex; align-items: center; gap: .3rem; padding: .32rem .52rem; border-radius: 999px; background: rgba(255, 255, 255, 0.82); border: 1px solid #dbe4ee; color: #334155; font-size: .73rem; font-weight: 700; }
-      .upload-card { display: flex; flex-direction: column; justify-content: space-between; gap: .55rem; padding: .75rem .85rem; }
+      .page-header { margin: .35rem 0 .45rem; }
+      .upload-card { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: .8rem; padding: .55rem .7rem; }
+      .upload-card-copy { min-width: 0; }
       .upload-card-title { margin: 0; font-size: .74rem; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: .04em; }
-      .upload-card-text { margin: .1rem 0 0; color: #64748b; font-size: .72rem; line-height: 1.28; }
+      .upload-card-text { margin: .08rem 0 0; color: #64748b; font-size: .72rem; line-height: 1.2; }
       .result-header { padding: .72rem .9rem; }
       .result-title-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; }
       .result-title-row h2 { margin: 0; }
@@ -50,9 +44,9 @@
       .language-form { display: flex; align-items: center; gap: .4rem; padding: .18rem .28rem .18rem .58rem; border-radius: 999px; background: rgba(255, 255, 255, 0.8); border: 1px solid #dbe4ee; box-shadow: inset 0 1px 0 rgba(255,255,255,.8); }
       .language-form label { font-size: .72rem; color: #475569; font-weight: 700; }
       .language-form select { border: 1px solid #cbd5e1; border-radius: 999px; padding: .28rem .58rem; background: white; color: #0f172a; font-size: .74rem; }
-      .upload-form { display: flex; flex-direction: column; gap: .55rem; align-items: stretch; }
+      .upload-form { display: flex; flex-direction: row; align-items: center; justify-content: flex-end; gap: .5rem; flex: 1; }
       .file-input { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-      .file-picker { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; min-width: min(100%, 420px); padding: .5rem; border: 1px dashed #bfd1e8; border-radius: 12px; background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%); }
+      .file-picker { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; min-width: min(100%, 420px); padding: .42rem .5rem; border: 1px dashed #bfd1e8; border-radius: 12px; background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%); }
       .file-picker-button { cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: .48rem .72rem; border-radius: 10px; border: 1px solid #94a3b8; background: #ffffff; color: #0f172a; font-weight: 700; font-size: .78rem; }
       .file-picker-name { color: #475569; font-weight: 600; font-size: .78rem; }
       button { cursor: pointer; background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%); color: white; border: none; border-radius: 10px; padding: .56rem .8rem; font-weight: 800; font-size: .8rem; box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2); }
@@ -172,10 +166,8 @@
         .topbar-inner { flex-direction: column; align-items: stretch; }
         .brand-wrap { align-items: flex-start; }
         .page-shell { padding-top: 1rem; }
-        .page-header { grid-template-columns: 1fr; }
-        .hero-card { padding: .95rem; }
-        .hero-title { font-size: 1.7rem; max-width: none; }
-        .upload-form { align-items: stretch; }
+        .upload-card { flex-direction: column; align-items: stretch; }
+        .upload-form { flex-direction: column; align-items: stretch; }
         .diagram-root { min-height: 620px; height: 70vh; }
         .result-workspace { grid-template-columns: 1fr; }
         .doc-sidebar { position: static; }
@@ -206,19 +198,8 @@
     </div>
     <main class="page-shell">
       <div class="page-header">
-        <section class="card hero-card">
-          <div class="brand-kicker">Power BI .pbit</div>
-          <h1 class="hero-title">{{ texts.app_title }}</h1>
-          <p class="hero-description">{{ texts.app_description | safe }}</p>
-          <div class="hero-meta">
-            <span class="hero-chip">Model relationships</span>
-            <span class="hero-chip">Interactive diagram</span>
-            <span class="hero-chip">Power Query steps</span>
-          </div>
-        </section>
-
         <section class="card upload-card">
-          <div>
+          <div class="upload-card-copy">
             <h2 class="upload-card-title">{{ texts.submit_button }}</h2>
             <p class="upload-card-text">Envie um <code>.pbit</code> para montar a documentação do modelo.</p>
           </div>
