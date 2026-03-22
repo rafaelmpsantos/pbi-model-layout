@@ -3,6 +3,7 @@
 Automatically arranges Power BI model diagram views into clean, relationship-aware layouts. Detects fact and dimension tables by prefix, reads real node sizes from the `.pbix`, and writes positions back - no manual dragging required.
 
 Available as both a **command-line tool** and a **graphical interface**.
+Now also includes a **web application** ready for Azure Web App deployment.
 
 ---
 
@@ -32,6 +33,34 @@ python pbix_layout_tool.py your_model.pbix --relations relations.json
 ```
 
 Open the generated `your_model_arranged.pbix` in Power BI Desktop.
+
+### Option 3: Web App (Upload `.pbit` and return relations)
+
+```bash
+pip install -r requirements.txt
+python web_app.py
+```
+
+Then open `http://localhost:8000`, upload your `.pbit`, and the UI will return the extracted relationships.
+
+API endpoint:
+
+```bash
+curl -X POST http://localhost:8000/api/extract-relations \
+  -F "file=@demo_model.pbit"
+```
+
+Response format:
+
+```json
+{
+  "file_name": "demo_model.pbit",
+  "relationship_count": 13,
+  "relations": [
+    { "from": "fct_Orders", "to": "dim_Customer" }
+  ]
+}
+```
 
 ![Before and after](before_and_after.png)
 
@@ -210,6 +239,10 @@ Each fact followed immediately by its dims in a row to the right. Snowflake chil
 | -------------------------- | ----------------------------------------- |
 | `pbix_layout_tool.py`      | Core layout engine + CLI                  |
 | `pbi_layout_gui.py`        | Graphical interface (v1.2)                |
+| `web_app.py`               | Flask web app for `.pbit` upload/extract  |
+| `templates/index.html`     | Web UI                                    |
+| `Procfile`                 | Azure/App Service startup command         |
+| `requirements.txt`         | Web dependencies                           |
 | `layout_preview.png`       | Preview canvas screenshot                 |
 | `before_and_after.png`     | Before/after model view comparison        |
 | `demo_model.pbix`          | Sample Power BI model                     |
@@ -218,6 +251,17 @@ Each fact followed immediately by its dims in a row to the right. Snowflake chil
 | `data/`                    | Sample data used in demo model            |
 
 ---
+
+## Deploy to Azure Web App (Linux)
+
+1. Create an App Service (Python runtime).
+2. Deploy this repository (GitHub Actions, local git, or zip deploy).
+3. Ensure startup command uses the included Procfile:
+   - `gunicorn --bind 0.0.0.0:$PORT web_app:app`
+4. The app will expose:
+   - `GET /` (upload UI)
+   - `POST /api/extract-relations` (JSON API)
+   - `GET /health` (health check)
 
 ## License
 
