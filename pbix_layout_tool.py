@@ -731,6 +731,108 @@ def _collect_visual_references(payload):
     return refs, measure_refs
 
 
+def _normalize_partition_expression(expression):
+    if isinstance(expression, list):
+        return "\n".join(str(item) for item in expression if item is not None)
+    if isinstance(expression, str):
+        return expression
+    return ""
+
+
+def _split_expression_steps(expression):
+    text = (expression or "").strip()
+    if not text:
+        return []
+
+    if not text.lower().startswith("let"):
+        return [{"name": "Expression", "expression": text}]
+
+    lines = [line.rstrip() for line in text.splitlines()]
+    body_lines = []
+    result_name = ""
+    in_section = False
+
+    for raw_line in lines[1:]:
+        stripped = raw_line.strip()
+        if not stripped:
+            continue
+        if stripped.lower() == "in":
+            in_section = True
+            continue
+        if in_section:
+            result_name = stripped
+            break
+        body_lines.append(raw_line)
+
+    body = "\n".join(body_lines)
+    assignments = []
+    current = []
+    depth = 0
+
+    for char in body:
+        current.append(char)
+        if char in "({[":
+            depth += 1
+        elif char in ")}]":
+            depth = max(0, depth - 1)
+        elif char == "," and depth == 0:
+            item = "".join(current).strip().rstrip(",").strip()
+            if item:
+                assignments.append(item)
+            current = []
+
+    tail = "".join(current).strip().rstrip(",").strip()
+    if tail:
+        assignments.append(tail)
+
+    steps = []
+    for index, assignment in enumerate(assignments, start=1):
+        if "=" in assignment:
+            name, expr = assignment.split("=", 1)
+            steps.append({"name": name.strip(), "expression": expr.strip()})
+        else:
+            steps.append({"name": f"Step {index}", "expression": assignment})
+
+    if result_name:
+        steps.append({"name": "Result", "expression": result_name})
+
+    return steps
+
+
+def _extract_table_queries(raw_tables):
+    queries = []
+    source_type_counts = {}
+
+    for table in raw_tables:
+        table_name = table.get("name", table.get("Name", ""))
+        if not table_name:
+            continue
+        is_local_date_table = "localdatetable" in table_name.lower()
+        is_date_table_template = "datetabletemplate" in table_name.lower()
+
+        for partition in table.get("partitions", table.get("Partitions", [])):
+            source = partition.get("source", partition.get("Source", {})) or {}
+            source_type = source.get("type", source.get("Type", "unknown")) or "unknown"
+            expression = _normalize_partition_expression(
+                source.get("expression", source.get("Expression", ""))
+            )
+            if not is_local_date_table:
+                queries.append(
+                    {
+                        "table": table_name,
+                        "partition": partition.get("name", partition.get("Name", "")) or table_name,
+                        "source_type": source_type,
+                        "expression": expression,
+                        "expression_steps": _split_expression_steps(expression),
+                        "is_local_date_table": is_local_date_table,
+                        "is_date_table_template": is_date_table_template,
+                    }
+                )
+                source_type_counts[source_type] = source_type_counts.get(source_type, 0) + 1
+
+    return queries, source_type_counts
+
+
 def extract_pbit_model_insights(pbit_path):
     """
     Extract richer metadata from a .pbit file:
@@ -742,6 +844,7 @@ def extract_pbit_model_insights(pbit_path):
     model = schema.get("model", schema.get("Model", {}))
     raw_rels = model.get("relationships", model.get("Relationships", []))
     raw_tables = model.get("tables", model.get("Tables", []))
+    table_queries, query_source_type_counts = _extract_table_queries(raw_tables)
 
     table_columns = {}
     table_measures = {}
@@ -854,6 +957,9 @@ def extract_pbit_model_insights(pbit_path):
         "table_columns": table_columns,
         "relations": relations,
         "measures": measures,
+        "table_queries": table_queries,
+        "table_query_count": len(table_queries),
+        "table_query_source_type_counts": query_source_type_counts,
         "pages": pages,
         "unused": {
             "table_count": len(unused_tables),

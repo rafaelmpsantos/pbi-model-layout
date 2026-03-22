@@ -8,23 +8,54 @@
       <link rel="stylesheet" href="https://esm.sh/reactflow@11.11.4/dist/style.css" />
     {% endif %}
     <style>
-      body { font-family: Arial, sans-serif; margin: 2rem auto; max-width: 980px; padding: 0 1rem; }
-      .card { border: 1px solid #d9d9d9; border-radius: 12px; padding: 1rem 1.2rem; margin-bottom: 1rem; }
+      body { font-family: "Segoe UI", Tahoma, sans-serif; margin: 0; background: linear-gradient(180deg, #f7fbff 0%, #eef5ff 42%, #f8fbff 100%); color: #0f172a; }
+      .page-shell { width: min(1720px, calc(100vw - 32px)); margin: 0 auto; padding: .8rem 0 1.25rem; }
+      .card { border: 1px solid #d9e4f2; border-radius: 18px; padding: .9rem 1rem; margin-bottom: .75rem; background: rgba(255, 255, 255, 0.88); box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06); backdrop-filter: blur(12px); }
       .error { background: #ffecec; border-color: #ffc1c1; color: #8a1f1f; }
       .ok { background: #f5f9ff; border-color: #c9dafc; }
-      .topbar { display: flex; justify-content: flex-end; margin-bottom: 1rem; }
-      .page-header { margin-bottom: 1rem; }
-      .page-header h1 { margin: 0 0 .5rem; }
-      .page-header p { margin: 0; }
-      .language-form { display: flex; align-items: center; gap: .5rem; }
-      .language-form label { font-size: .95rem; color: #334155; }
-      .language-form select { border: 1px solid #cbd5e1; border-radius: 10px; padding: .5rem .8rem; background: white; }
-      .upload-form { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
+      .topbar { position: sticky; top: 0; z-index: 40; border-bottom: 1px solid rgba(203, 213, 225, 0.8); background: rgba(248, 250, 252, 0.8); backdrop-filter: blur(18px); }
+      .topbar-inner { width: min(1720px, calc(100vw - 32px)); margin: 0 auto; padding: .55rem 0; display: flex; align-items: center; justify-content: space-between; gap: .85rem; }
+      .brand-wrap { display: flex; align-items: center; gap: .9rem; min-width: 0; }
+      .brand-badge { width: 38px; height: 38px; border-radius: 12px; background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 100%); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 1.05rem; font-weight: 800; box-shadow: 0 12px 24px rgba(29, 78, 216, 0.22); }
+      .brand-copy { min-width: 0; }
+      .brand-kicker { display: inline-flex; align-items: center; padding: .14rem .42rem; border-radius: 999px; background: #dbeafe; color: #1d4ed8; font-size: .64rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+      .brand-title { margin-top: .18rem; font-size: .86rem; font-weight: 800; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .page-header { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(340px, .72fr); gap: .6rem; margin: .45rem 0 .55rem; }
+      .hero-card { position: relative; overflow: hidden; padding: .8rem .95rem; min-height: 0; }
+      .hero-card::before { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at top right, rgba(96, 165, 250, 0.2), transparent 38%), radial-gradient(circle at bottom left, rgba(15, 23, 42, 0.06), transparent 36%); pointer-events: none; }
+      .hero-card > * { position: relative; }
+      .hero-title { margin: .05rem 0 .25rem; font-size: clamp(1.05rem, 1.9vw, 1.55rem); line-height: 1.02; letter-spacing: -.03em; max-width: 18ch; }
+      .hero-description { margin: 0; font-size: .74rem; color: #475569; max-width: 64ch; line-height: 1.3; }
+      .hero-meta { display: flex; flex-wrap: wrap; gap: .32rem; margin-top: .5rem; }
+      .hero-chip { display: inline-flex; align-items: center; gap: .3rem; padding: .32rem .52rem; border-radius: 999px; background: rgba(255, 255, 255, 0.82); border: 1px solid #dbe4ee; color: #334155; font-size: .73rem; font-weight: 700; }
+      .upload-card { display: flex; flex-direction: column; justify-content: space-between; gap: .55rem; padding: .75rem .85rem; }
+      .upload-card-title { margin: 0; font-size: .74rem; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: .04em; }
+      .upload-card-text { margin: .1rem 0 0; color: #64748b; font-size: .72rem; line-height: 1.28; }
+      .result-header { padding: .72rem .9rem; }
+      .result-title-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; }
+      .result-title-row h2 { margin: 0; }
+      .result-file { color: #475569; font-size: .82rem; font-weight: 600; }
+      .result-relationship-total { color: #0f172a; font-size: .84rem; font-weight: 800; margin-top: .25rem; }
+      .result-meta { display: flex; flex-wrap: wrap; gap: .42rem; margin-top: .55rem; }
+      .result-pill { display: inline-flex; align-items: center; gap: .3rem; padding: .28rem .5rem; border-radius: 999px; background: #eaf2ff; color: #1e3a8a; font-size: .74rem; font-weight: 700; }
+      .result-workspace { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: .7rem; align-items: start; margin-top: .7rem; }
+      .doc-sidebar { position: sticky; top: 68px; padding: .65rem; }
+      .doc-sidebar-title { margin: 0 0 .45rem; font-size: .68rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #64748b; }
+      .doc-tabs { display: flex; flex-direction: column; gap: .38rem; margin: 0; }
+      .doc-tab { width: 100%; text-align: left; background: #eef4fb; color: #334155; border: 1px solid #d3dfef; border-radius: 12px; padding: .58rem .7rem; font-size: .78rem; font-weight: 700; box-shadow: none; }
+      .doc-tab.active { background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); color: #fff; border-color: #0f172a; box-shadow: 0 12px 24px rgba(30, 58, 138, 0.22); }
+      .doc-content { min-width: 0; }
+      .doc-page { display: none; }
+      .doc-page.active { display: block; }
+      .language-form { display: flex; align-items: center; gap: .4rem; padding: .18rem .28rem .18rem .58rem; border-radius: 999px; background: rgba(255, 255, 255, 0.8); border: 1px solid #dbe4ee; box-shadow: inset 0 1px 0 rgba(255,255,255,.8); }
+      .language-form label { font-size: .72rem; color: #475569; font-weight: 700; }
+      .language-form select { border: 1px solid #cbd5e1; border-radius: 999px; padding: .28rem .58rem; background: white; color: #0f172a; font-size: .74rem; }
+      .upload-form { display: flex; flex-direction: column; gap: .55rem; align-items: stretch; }
       .file-input { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-      .file-picker { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; min-width: min(100%, 420px); }
-      .file-picker-button { cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: .65rem 1rem; border-radius: 8px; border: 1px solid #94a3b8; background: #f8fafc; color: #0f172a; }
-      .file-picker-name { color: #475569; }
-      button { cursor: pointer; background: #0078d4; color: white; border: none; border-radius: 8px; padding: .65rem 1rem; }
+      .file-picker { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; min-width: min(100%, 420px); padding: .5rem; border: 1px dashed #bfd1e8; border-radius: 12px; background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%); }
+      .file-picker-button { cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: .48rem .72rem; border-radius: 10px; border: 1px solid #94a3b8; background: #ffffff; color: #0f172a; font-weight: 700; font-size: .78rem; }
+      .file-picker-name { color: #475569; font-weight: 600; font-size: .78rem; }
+      button { cursor: pointer; background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%); color: white; border: none; border-radius: 10px; padding: .56rem .8rem; font-weight: 800; font-size: .8rem; box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2); }
       .diagram-shell { border: 1px solid #d9d9d9; border-radius: 12px; background: #fff; padding: .75rem; }
       .diagram-root { width: 100%; min-height: 760px; height: 76vh; }
       .rf-shell { height: 100%; display: flex; flex-direction: column; gap: .75rem; }
@@ -110,171 +141,300 @@
       .rf-tooltip span { display: block; color: rgba(248, 250, 252, 0.82); font-size: .74rem; line-height: 1.45; }.rf-legend { display: inline-flex; flex-wrap: nowrap; gap: .7rem; align-items: center; padding: .45rem .65rem; border-radius: 999px; background: rgba(255,255,255,.94); border: 1px solid #dbe4ee; box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08); white-space: nowrap; }
       .rf-legend-item { display: inline-flex; align-items: center; gap: .35rem; color: #475569; font-size: .72rem; font-weight: 700; }
       .rf-legend-swatch { width: 10px; height: 10px; border-radius: 999px; }
+      .doc-page h3 { margin-top: 0; }
+      .pq-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin-top: 1rem; }
+      .pq-card { border: 1px solid #dbe4ee; border-radius: 18px; background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%); box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08); overflow: hidden; }
+      .pq-card-header { padding: .9rem 1rem .75rem; background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%); border-bottom: 1px solid #e2e8f0; }
+      .pq-card-title { display: flex; align-items: start; justify-content: space-between; gap: .75rem; }
+      .pq-card-title strong { display: block; color: #0f172a; font-size: 1rem; line-height: 1.2; }
+      .pq-card-subtitle { margin-top: .3rem; color: #64748b; font-size: .8rem; word-break: break-word; }
+      .pq-badges { display: inline-flex; flex-wrap: wrap; gap: .4rem; }
+      .pq-badge { display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; padding: .22rem .58rem; font-size: .72rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; border: 1px solid transparent; }
+      .pq-badge.source-m { background: #dcfce7; color: #166534; border-color: #86efac; }
+      .pq-badge.source-calculated { background: #ede9fe; color: #6d28d9; border-color: #c4b5fd; }
+      .pq-badge.source-unknown { background: #e2e8f0; color: #334155; border-color: #cbd5e1; }
+      .pq-badge.date-auto { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
+      .pq-card-body { padding: 1rem; }
+      .pq-steps { list-style: none; margin: 0; padding: 0; position: relative; }
+      .pq-step { position: relative; padding-left: 2.2rem; }
+      .pq-step + .pq-step { margin-top: .9rem; }
+      .pq-step::before { content: ""; position: absolute; left: .7rem; top: .2rem; bottom: -.95rem; width: 2px; background: linear-gradient(180deg, #bfdbfe 0%, #dbeafe 100%); }
+      .pq-step:last-child::before { bottom: .8rem; }
+      .pq-step-index { position: absolute; left: 0; top: 0; width: 1.45rem; height: 1.45rem; border-radius: 999px; background: #2563eb; color: #fff; font-size: .72rem; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 0 0 4px #eff6ff; }
+      .pq-step-card { border: 1px solid #e2e8f0; border-radius: 14px; background: #ffffff; padding: .72rem .8rem; }
+      .pq-step-name { display: block; font-weight: 800; color: #0f172a; margin-bottom: .35rem; font-size: .9rem; }
+      .pq-step-code { display: block; white-space: pre-wrap; word-break: break-word; background: #f8fafc; color: #0f172a; padding: .55rem .65rem; border-radius: 10px; border: 1px solid #e2e8f0; font-size: .8rem; line-height: 1.45; }
       table { border-collapse: collapse; width: 100%; margin-top: .75rem; }
       th, td { border: 1px solid #ddd; padding: .5rem; text-align: left; }
       th { background: #f5f5f5; }
       code { background: #f2f2f2; padding: .15rem .3rem; border-radius: 4px; }
       @media (max-width: 640px) {
-        .topbar { justify-content: flex-start; }
+        .topbar-inner { flex-direction: column; align-items: stretch; }
+        .brand-wrap { align-items: flex-start; }
+        .page-shell { padding-top: 1rem; }
+        .page-header { grid-template-columns: 1fr; }
+        .hero-card { padding: .95rem; }
+        .hero-title { font-size: 1.7rem; max-width: none; }
         .upload-form { align-items: stretch; }
         .diagram-root { min-height: 620px; height: 70vh; }
+        .result-workspace { grid-template-columns: 1fr; }
+        .doc-sidebar { position: static; }
+        .doc-tabs { flex-direction: row; flex-wrap: wrap; }
+        .doc-tab { width: auto; }
+        .pq-grid { grid-template-columns: 1fr; }
       }
     </style>
   </head>
   <body>
     <div class="topbar">
-      <form method="get" action="/" class="language-form">
-        <label for="lang-select">{{ texts.language_label }}</label>
-        <select id="lang-select" name="lang" onchange="this.form.submit()">
-          <option value="pt" {% if locale == 'pt' %}selected{% endif %}>{{ texts.language_pt }}</option>
-          <option value="en" {% if locale == 'en' %}selected{% endif %}>{{ texts.language_en }}</option>
-        </select>
-      </form>
-    </div>
-
-    <div class="page-header">
-      <h1>{{ texts.app_title }}</h1>
-      <p>{{ texts.app_description | safe }}</p>
-    </div>
-
-    <div class="card">
-      <form action="/extract" method="post" enctype="multipart/form-data" class="upload-form">
-        <input type="hidden" name="lang" value="{{ locale }}" />
-        <div class="file-picker">
-          <input
-            id="file-input"
-            class="file-input"
-            type="file"
-            name="file"
-            accept=".pbit"
-            required
-          />
-          <label for="file-input" class="file-picker-button">{{ texts.choose_file }}</label>
-          <span class="file-picker-name" id="file-name">{{ texts.no_file_chosen }}</span>
+      <div class="topbar-inner">
+        <div class="brand-wrap">
+          <div class="brand-badge">BI</div>
+          <div class="brand-copy">
+            <span class="brand-kicker">Model Explorer</span>
+            <div class="brand-title">{{ texts.page_title }}</div>
+          </div>
         </div>
-        <button type="submit">{{ texts.submit_button }}</button>
-      </form>
-    </div>
-
-    {% if error %}
-      <div class="card error"><strong>{{ texts.error_label }}</strong> {{ error }}</div>
-    {% endif %}
-
-    {% if result %}
-      <div class="card ok">
-        <h2>{{ texts.result_title }}</h2>
-        <p><strong>{{ texts.file_label }}</strong> {{ result.file_name }}</p>
-        <p><strong>{{ texts.relationship_total_label }}</strong> {{ result.relationship_count }}</p>
-        <p>
-          <strong>{{ texts.tables_label }}</strong> {{ result.table_count }} |
-          <strong>{{ texts.measures_label }}</strong> {{ result.measure_count }} |
-          <strong>{{ texts.pages_label }}</strong> {{ result.page_count }} |
-          <strong>{{ texts.visuals_label }}</strong> {{ result.visual_count }}
-        </p>
-
-        <h3>{{ texts.relationship_diagram_title }}</h3>
-        <div class="diagram-shell">
-          <div id="model-diagram-root" class="diagram-root"></div>
-          <noscript>
-            <div>{{ result.diagram_svg | safe }}</div>
-          </noscript>
-        </div>
-        <script id="model-diagram-props" type="application/json">
-          {{ {"locale": locale, "texts": texts, "graph": result.diagram_graph} | tojson }}
-        </script>
-        <script type="module" src="{{ url_for('static', filename='model-diagram-app.js') }}"></script>
-
-        <h3>{{ texts.relationships_table_title }}</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>{{ texts.from_column }}</th>
-              <th>{{ texts.to_column }}</th>
-              <th>{{ texts.from_field_column }}</th>
-              <th>{{ texts.to_field_column }}</th>
-              <th>{{ texts.cardinality_column }}</th>
-              <th>{{ texts.filter_direction_column }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for relation in result.relations %}
-              <tr>
-                <td>{{ relation.from }}</td>
-                <td>{{ relation.to }}</td>
-                <td>{{ relation.from_column or '-' }}</td>
-                <td>{{ relation.to_column or '-' }}</td>
-                <td>{{ relation.cardinality_label or '?' }}</td>
-                <td>{{ relation.direction_label or '?' }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-
-        <h3>{{ texts.measures_definitions_title }}</h3>
-        {% if result.measures %}
-          <table>
-            <thead>
-              <tr>
-                <th>{{ texts.table_column }}</th>
-                <th>{{ texts.measure_column }}</th>
-                <th>{{ texts.definition_column }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for measure in result.measures %}
-                <tr>
-                  <td>{{ measure.table }}</td>
-                  <td>{{ measure.name }}</td>
-                  <td><code>{{ measure.expression or "-" }}</code></td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        {% else %}
-          <p>{{ texts.no_measures_found }}</p>
-        {% endif %}
-
-        <h3>{{ texts.pages_visuals_title }}</h3>
-        {% if result.pages %}
-          <table>
-            <thead>
-              <tr>
-                <th>{{ texts.page_column }}</th>
-                <th>{{ texts.visual_count_column }}</th>
-                <th>{{ texts.visual_types_column }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for page in result.pages %}
-                <tr>
-                  <td>{{ page.name }}</td>
-                  <td>{{ page.visual_count }}</td>
-                  <td>
-                    {% if page.visuals %}
-                      {{ page.visuals | map(attribute='visual_type') | join(', ') }}
-                    {% else %}
-                      -
-                    {% endif %}
-                  </td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        {% endif %}
-
-        <h3>{{ texts.potentially_unused_title }}</h3>
-        <p>
-          {{ texts.unused_summary.format(
-            table_count=result.unused.table_count,
-            measure_count=result.unused.measure_count,
-            column_count=result.unused.column_count
-          ) }}
-        </p>
-        {% if result.unused.tables %}
-          <p><strong>{{ texts.unused_tables_label }}</strong> {{ result.unused.tables | join(', ') }}</p>
-        {% endif %}
+        <form method="get" action="/" class="language-form">
+          <label for="lang-select">{{ texts.language_label }}</label>
+          <select id="lang-select" name="lang" onchange="this.form.submit()">
+            <option value="pt" {% if locale == 'pt' %}selected{% endif %}>{{ texts.language_pt }}</option>
+            <option value="en" {% if locale == 'en' %}selected{% endif %}>{{ texts.language_en }}</option>
+          </select>
+        </form>
       </div>
-    {% endif %}
+    </div>
+    <main class="page-shell">
+      <div class="page-header">
+        <section class="card hero-card">
+          <div class="brand-kicker">Power BI .pbit</div>
+          <h1 class="hero-title">{{ texts.app_title }}</h1>
+          <p class="hero-description">{{ texts.app_description | safe }}</p>
+          <div class="hero-meta">
+            <span class="hero-chip">Model relationships</span>
+            <span class="hero-chip">Interactive diagram</span>
+            <span class="hero-chip">Power Query steps</span>
+          </div>
+        </section>
+
+        <section class="card upload-card">
+          <div>
+            <h2 class="upload-card-title">{{ texts.submit_button }}</h2>
+            <p class="upload-card-text">Envie um <code>.pbit</code> para montar a documentação do modelo.</p>
+          </div>
+          <form action="/extract" method="post" enctype="multipart/form-data" class="upload-form">
+            <input type="hidden" name="lang" value="{{ locale }}" />
+            <div class="file-picker">
+              <input
+                id="file-input"
+                class="file-input"
+                type="file"
+                name="file"
+                accept=".pbit"
+                required
+              />
+              <label for="file-input" class="file-picker-button">{{ texts.choose_file }}</label>
+              <span class="file-picker-name" id="file-name">{{ texts.no_file_chosen }}</span>
+            </div>
+            <button type="submit">{{ texts.submit_button }}</button>
+          </form>
+        </section>
+      </div>
+
+      {% if error %}
+        <div class="card error"><strong>{{ texts.error_label }}</strong> {{ error }}</div>
+      {% endif %}
+
+      {% if result %}
+        <div class="card ok result-header">
+          <div class="result-title-row">
+            <h2>{{ texts.result_title }}</h2>
+            <div class="result-file"><strong>{{ texts.file_label }}</strong> {{ result.file_name }}</div>
+          </div>
+          <div class="result-relationship-total"><strong>{{ texts.relationship_total_label }}</strong> {{ result.relationship_count }}</div>
+          <div class="result-meta">
+            <span class="result-pill"><strong>{{ texts.tables_label }}</strong> {{ result.table_count }}</span>
+            <span class="result-pill"><strong>{{ texts.measures_label }}</strong> {{ result.measure_count }}</span>
+            <span class="result-pill"><strong>{{ texts.pages_label }}</strong> {{ result.page_count }}</span>
+            <span class="result-pill"><strong>{{ texts.visuals_label }}</strong> {{ result.visual_count }}</span>
+          </div>
+        </div>
+
+        <div class="result-workspace">
+          <aside class="card doc-sidebar">
+            <h3 class="doc-sidebar-title">Sections</h3>
+            <div class="doc-tabs" role="tablist" aria-label="Documentation sections">
+              <button type="button" class="doc-tab active" data-doc-target="diagram">{{ texts.relationship_diagram_title }}</button>
+              <button type="button" class="doc-tab" data-doc-target="relations">{{ texts.relationships_table_title }}</button>
+              <button type="button" class="doc-tab" data-doc-target="measures">{{ texts.measures_definitions_title }}</button>
+              <button type="button" class="doc-tab" data-doc-target="power-query">{{ texts.power_query_title }}</button>
+              <button type="button" class="doc-tab" data-doc-target="pages">{{ texts.pages_visuals_title }}</button>
+              <button type="button" class="doc-tab" data-doc-target="unused">{{ texts.potentially_unused_title }}</button>
+            </div>
+          </aside>
+
+          <div class="card ok doc-content">
+            <section class="doc-page active" data-doc-page="diagram">
+              <h3>{{ texts.relationship_diagram_title }}</h3>
+              <div class="diagram-shell">
+                <div id="model-diagram-root" class="diagram-root"></div>
+                <noscript>
+                  <div>{{ result.diagram_svg | safe }}</div>
+                </noscript>
+              </div>
+              <script id="model-diagram-props" type="application/json">
+                {{ {"locale": locale, "texts": texts, "graph": result.diagram_graph} | tojson }}
+              </script>
+              <script type="module" src="{{ url_for('static', filename='model-diagram-app.js') }}"></script>
+            </section>
+
+            <section class="doc-page" data-doc-page="relations">
+              <h3>{{ texts.relationships_table_title }}</h3>
+              <table>
+                <thead>
+                  <tr>
+                    <th>{{ texts.from_column }}</th>
+                    <th>{{ texts.to_column }}</th>
+                    <th>{{ texts.from_field_column }}</th>
+                    <th>{{ texts.to_field_column }}</th>
+                    <th>{{ texts.cardinality_column }}</th>
+                    <th>{{ texts.filter_direction_column }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for relation in result.relations %}
+                    <tr>
+                      <td>{{ relation.from }}</td>
+                      <td>{{ relation.to }}</td>
+                      <td>{{ relation.from_column or '-' }}</td>
+                      <td>{{ relation.to_column or '-' }}</td>
+                      <td>{{ relation.cardinality_label or '?' }}</td>
+                      <td>{{ relation.direction_label or '?' }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </section>
+
+            <section class="doc-page" data-doc-page="measures">
+              <h3>{{ texts.measures_definitions_title }}</h3>
+              {% if result.measures %}
+                <table>
+                  <thead>
+                    <tr>
+                      <th>{{ texts.table_column }}</th>
+                      <th>{{ texts.measure_column }}</th>
+                      <th>{{ texts.definition_column }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for measure in result.measures %}
+                      <tr>
+                        <td>{{ measure.table }}</td>
+                        <td>{{ measure.name }}</td>
+                        <td><code>{{ measure.expression or "-" }}</code></td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              {% else %}
+                <p>{{ texts.no_measures_found }}</p>
+              {% endif %}
+            </section>
+
+            <section class="doc-page" data-doc-page="power-query">
+              <h3>{{ texts.power_query_title }}</h3>
+              {% if result.table_queries %}
+                <p>{{ texts.power_query_summary.format(count=result.table_query_count) }}</p>
+                <div class="pq-grid">
+                  {% for query in result.table_queries %}
+                    <section class="pq-card">
+                      <div class="pq-card-header">
+                        <div class="pq-card-title">
+                          <div>
+                            <strong>{{ query.table }}</strong>
+                            <div class="pq-card-subtitle">{{ query.partition }}</div>
+                          </div>
+                          <div class="pq-badges">
+                            <span class="pq-badge source-{{ query.source_type | lower }}">{{ query.source_type }}</span>
+                            {% if query.is_date_table_template %}
+                              <span class="pq-badge date-auto">Date Auto</span>
+                            {% endif %}
+                          </div>
+                        </div>
+                      </div>
+                      <div class="pq-card-body">
+                        {% if query.expression_steps %}
+                          <ol class="pq-steps">
+                            {% for step in query.expression_steps %}
+                              <li class="pq-step">
+                                <span class="pq-step-index">{{ loop.index }}</span>
+                                <div class="pq-step-card">
+                                  <span class="pq-step-name">{{ step.name }}</span>
+                                  <code class="pq-step-code">{{ step.expression }}</code>
+                                </div>
+                              </li>
+                            {% endfor %}
+                          </ol>
+                        {% else %}
+                          <code>-</code>
+                        {% endif %}
+                      </div>
+                    </section>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <p>{{ texts.power_query_empty }}</p>
+              {% endif %}
+            </section>
+
+            <section class="doc-page" data-doc-page="pages">
+              <h3>{{ texts.pages_visuals_title }}</h3>
+              {% if result.pages %}
+                <table>
+                  <thead>
+                    <tr>
+                      <th>{{ texts.page_column }}</th>
+                      <th>{{ texts.visual_count_column }}</th>
+                      <th>{{ texts.visual_types_column }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for page in result.pages %}
+                      <tr>
+                        <td>{{ page.name }}</td>
+                        <td>{{ page.visual_count }}</td>
+                        <td>
+                          {% if page.visuals %}
+                            {{ page.visuals | map(attribute='visual_type') | join(', ') }}
+                          {% else %}
+                            -
+                          {% endif %}
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              {% endif %}
+            </section>
+
+            <section class="doc-page" data-doc-page="unused">
+              <h3>{{ texts.potentially_unused_title }}</h3>
+              <p>
+                {{ texts.unused_summary.format(
+                  table_count=result.unused.table_count,
+                  measure_count=result.unused.measure_count,
+                  column_count=result.unused.column_count
+                ) }}
+              </p>
+              {% if result.unused.tables %}
+                <p><strong>{{ texts.unused_tables_label }}</strong> {{ result.unused.tables | join(', ') }}</p>
+              {% endif %}
+            </section>
+          </div>
+        </div>
+      {% endif %}
+    </main>
     <script>
       (() => {
         const fileInput = document.getElementById("file-input");
@@ -286,6 +446,18 @@
             fileName.textContent = fileInput.files && fileInput.files.length
               ? fileInput.files[0].name
               : defaultFileText;
+          });
+        }
+
+        const tabButtons = [...document.querySelectorAll(".doc-tab")];
+        const pages = [...document.querySelectorAll(".doc-page")];
+        if (tabButtons.length && pages.length) {
+          tabButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+              const target = button.dataset.docTarget;
+              tabButtons.forEach((item) => item.classList.toggle("active", item === button));
+              pages.forEach((page) => page.classList.toggle("active", page.dataset.docPage === target));
+            });
           });
         }
       })();
