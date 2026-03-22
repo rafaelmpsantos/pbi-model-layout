@@ -1,4 +1,3 @@
-import json
 import os
 import tempfile
 from datetime import datetime, timezone
@@ -7,7 +6,7 @@ from html import escape
 from flask import Flask, jsonify, render_template, request
 from werkzeug.utils import secure_filename
 
-from pbix_layout_tool import extract_relations_from_pbit
+from pbix_layout_tool import extract_pbit_model_insights
 from pbix_layout_tool import (
     DEFAULT_DIM_PREFIXES,
     DEFAULT_FACT_PREFIXES,
@@ -27,17 +26,12 @@ def _is_allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-def _extract_relations(uploaded_file) -> list[dict]:
+def _extract_model_insights(uploaded_file) -> dict:
     with tempfile.TemporaryDirectory() as tmpdir:
         source_name = secure_filename(uploaded_file.filename or "model.pbit")
         source_path = os.path.join(tmpdir, source_name)
-        output_path = os.path.join(tmpdir, "relations.json")
         uploaded_file.save(source_path)
-
-        extract_relations_from_pbit(source_path, output_path=output_path)
-
-        with open(output_path, "r", encoding="utf-8") as f:
-            return json.load(f)
+        return extract_pbit_model_insights(source_path)
 
 
 def _build_diagram_svg(relations: list[dict]) -> str:
@@ -159,16 +153,16 @@ def extract_relations_api():
         return jsonify({"error": "Formato inválido. Envie um arquivo .pbit."}), 400
 
     try:
-        relations = _extract_relations(uploaded_file)
+        insights = _extract_model_insights(uploaded_file)
     except Exception as exc:
         return jsonify({"error": f"Falha ao extrair relacionamentos: {exc}"}), 400
 
+    relations = insights["relations"]
     diagram_svg = _build_diagram_svg(relations)
     return jsonify(
         {
             "file_name": uploaded_file.filename,
-            "relationship_count": len(relations),
-            "relations": relations,
+            **insights,
             "diagram_svg": diagram_svg,
         }
     )
@@ -187,21 +181,18 @@ def extract_relations_ui():
         ), 400
 
     try:
-        relations = _extract_relations(uploaded_file)
+        insights = _extract_model_insights(uploaded_file)
     except Exception as exc:
         return render_template(
             "index.html", error=f"Não foi possível processar o arquivo: {exc}"
         ), 400
 
+    relations = insights["relations"]
     diagram_svg = _build_diagram_svg(relations)
+    result = {"file_name": uploaded_file.filename, **insights, "diagram_svg": diagram_svg}
     return render_template(
         "index.html",
-        result={
-            "file_name": uploaded_file.filename,
-            "relationship_count": len(relations),
-            "relations": relations,
-            "diagram_svg": diagram_svg,
-        },
+        result=result,
     )
 
 

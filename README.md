@@ -41,7 +41,7 @@ pip install -r requirements.txt
 python web_app.py
 ```
 
-Then open `http://localhost:8000`, upload your `.pbit`, and the UI will return the extracted relationships.
+Then open `http://localhost:8000`, upload your `.pbit`, and the UI will return extracted model insights.
 The result screen also renders a relationship diagram (SVG) inspired by the GUI layout logic.
 
 API endpoint:
@@ -57,9 +57,36 @@ Response format:
 {
   "file_name": "demo_model.pbit",
   "relationship_count": 13,
+  "table_count": 19,
+  "measure_count": 42,
+  "page_count": 4,
+  "visual_count": 21,
   "relations": [
-    { "from": "fct_Orders", "to": "dim_Customer" }
-  ]
+    {
+      "from": "fct_Orders",
+      "to": "dim_Customer",
+      "from_column": "customer_id",
+      "to_column": "customer_id"
+    }
+  ],
+  "measures": [
+    {
+      "table": "fct_Orders",
+      "name": "Total Sales",
+      "expression": "SUM(fct_Orders[sales_amount])"
+    }
+  ],
+  "pages": [
+    {
+      "name": "Visão Geral",
+      "visual_count": 5
+    }
+  ],
+  "unused": {
+    "table_count": 1,
+    "measure_count": 3,
+    "column_count": 15
+  }
 }
 ```
 

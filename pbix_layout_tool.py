@@ -68,6 +68,7 @@ import argparse
 import json
 import math
 import os
+import re
 import sys
 import zipfile
 from collections import defaultdict
@@ -556,79 +557,7 @@ def extract_relations_from_pbit(pbit_path, output_path="relations.json", debug=F
     Real Power BI .pbit files encode DataModelSchema as UTF-16-LE with
     a BOM prefix. We try multiple encoding strategies to handle all PBI versions.
     """
-    with zipfile.ZipFile(pbit_path, 'r') as zf:
-        schema_file = None
-        for name in zf.namelist():
-            if "DataModelSchema" in name:
-                schema_file = name
-                break
-        if schema_file is None:
-            raise FileNotFoundError(
-                "No DataModelSchema found in this .pbit.\n"
-                "Make sure you saved as Power BI Template (.pbit) in PBI Desktop."
-            )
-        raw = zf.read(schema_file)
-
-    # Debug output if requested
-    if debug:
-        print(f"\n[DEBUG] File inside .pbit: {schema_file}")
-        print(f"\n[DEBUG] Raw size: {len(raw)} bytes")
-        print(f"[DEBUG] First 100 bytes (hex): {raw[:100].hex()}")
-        print(f"[DEBUG] First 100 bytes (repr): {repr(raw[:100])}\n")
-
-    schema = None
-
-    # Try multiple encoding strategies to handle different PBI versions
-    
-    # Strategy 1: UTF-16-LE (what real PBI Desktop produces)
-    try:
-        text = raw.decode('utf-16-le')
-        brace = text.find('{')
-        if brace != -1:
-            schema = json.loads(text[brace:])
-            if debug:
-                print("[DEBUG] Decoded as UTF-16-LE")
-    except (UnicodeDecodeError, json.JSONDecodeError):
-        pass
-
-    # Strategy 2: UTF-16-LE with BOM stripped first
-    if schema is None:
-        try:
-            if raw[:2] == b'\xff\xfe':
-                text = raw[2:].decode('utf-16-le')
-            else:
-                text = raw.decode('utf-16-le', errors='ignore')
-            brace = text.find('{')
-            if brace != -1:
-                schema = json.loads(text[brace:])
-                if debug:
-                    print("[DEBUG] Decoded as UTF-16-LE (BOM stripped)")
-        except (UnicodeDecodeError, json.JSONDecodeError):
-            pass
-
-    # Strategy 3: UTF-8, skip binary prefix before first '{'
-    if schema is None:
-        try:
-            brace = raw.find(b'{')
-            if brace != -1:
-                schema = json.loads(raw[brace:].decode('utf-8'))
-                if debug:
-                    print("[DEBUG] Decoded as UTF-8 (binary prefix skipped)")
-        except (UnicodeDecodeError, json.JSONDecodeError):
-            pass
-
-    # Strategy 4: UTF-8 with BOM
-    if schema is None:
-        try:
-            start = 3 if raw[:3] == b'\xef\xbb\xbf' else 0
-            text = raw[start:].decode('utf-8', errors='ignore')
-            brace = text.find('{')
-            if brace != -1:
-                schema = json.loads(text[brace:])
-                if debug:
-                    print("[DEBUG] Decoded as UTF-8 (errors ignored)")
-        except (UnicodeDecodeError, json.JSONDecodeError):
-            pass
+    schema = _load_pbit_json(pbit_path, "DataModelSchema", debug=debug)
 
     if schema is None:
         print("[ERROR] Could not parse DataModelSchema.")
@@ -667,6 +596,258 @@ def extract_relations_from_pbit(pbit_path, output_path="relations.json", debug=F
     print(f"\n[✓] Written {output_path}  ({len(relations)} relationships)")
     print(f"    You can now run:\n")
     print(f"      python pbix_layout_tool.py your_model.pbix --relations {output_path}\n")
+
+
+def _decode_json_from_raw(raw, debug=False):
+    """
+    Decode JSON from raw bytes using multiple strategies seen in PBIT internals.
+    """
+    if debug:
+        print(f"\n[DEBUG] Raw size: {len(raw)} bytes")
+        print(f"[DEBUG] First 100 bytes (hex): {raw[:100].hex()}")
+        print(f"[DEBUG] First 100 bytes (repr): {repr(raw[:100])}\n")
+
+    # Strategy 1: UTF-16-LE
+    try:
+        text = raw.decode("utf-16-le")
+        brace = text.find("{")
+        if brace != -1:
+            return json.loads(text[brace:])
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        pass
+
+    # Strategy 2: UTF-16-LE with BOM stripped first
+    try:
+        text = raw[2:].decode("utf-16-le") if raw[:2] == b"\xff\xfe" else raw.decode("utf-16-le", errors="ignore")
+        brace = text.find("{")
+        if brace != -1:
+            return json.loads(text[brace:])
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        pass
+
+    # Strategy 3: UTF-8, skip binary prefix before first '{'
+    try:
+        brace = raw.find(b"{")
+        if brace != -1:
+            return json.loads(raw[brace:].decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        pass
+
+    # Strategy 4: UTF-8 with BOM
+    try:
+        start = 3 if raw[:3] == b"\xef\xbb\xbf" else 0
+        text = raw[start:].decode("utf-8", errors="ignore")
+        brace = text.find("{")
+        if brace != -1:
+            return json.loads(text[brace:])
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        pass
+
+    return None
+
+
+def _load_pbit_json(pbit_path, internal_name, debug=False):
+    with zipfile.ZipFile(pbit_path, "r") as zf:
+        target_file = None
+        for name in zf.namelist():
+            if internal_name in name:
+                target_file = name
+                break
+        if target_file is None:
+            raise FileNotFoundError(
+                f"No {internal_name} found in this .pbit.\n"
+                "Make sure you saved as Power BI Template (.pbit) in PBI Desktop."
+            )
+        raw = zf.read(target_file)
+
+    if debug:
+        print(f"\n[DEBUG] File inside .pbit: {target_file}")
+    payload = _decode_json_from_raw(raw, debug=debug)
+    if payload is None:
+        print(f"[ERROR] Could not parse {internal_name}.")
+        print("        Run with --debug-pbit to see the raw bytes for diagnosis.")
+        sys.exit(1)
+    return payload
+
+
+def _parse_measure_dependencies(expression):
+    if not expression:
+        return set(), set()
+    refs = re.findall(r"([A-Za-z0-9_ ]+)\[([^\]]+)\]", expression)
+    tables = set()
+    columns_or_measures = set()
+    for table, field in refs:
+        table_name = table.strip().strip("'")
+        field_name = field.strip()
+        if not table_name or not field_name:
+            continue
+        tables.add(table_name)
+        columns_or_measures.add((table_name, field_name))
+    return tables, columns_or_measures
+
+
+def _collect_visual_references(payload):
+    refs = set()
+    measure_refs = set()
+
+    def walk(node):
+        if isinstance(node, dict):
+            if "SourceRef" in node and "Property" in node:
+                source_ref = node.get("SourceRef")
+                if isinstance(source_ref, dict) and isinstance(source_ref.get("Source"), str):
+                    refs.add((source_ref["Source"], node["Property"]))
+            expression = node.get("Expression")
+            if isinstance(expression, dict) and "SourceRef" in expression and "Property" in node:
+                source_ref = expression.get("SourceRef", {})
+                if isinstance(source_ref.get("Source"), str):
+                    refs.add((source_ref["Source"], node["Property"]))
+            measure = node.get("Measure")
+            if isinstance(measure, dict):
+                source_ref = measure.get("Expression", {}).get("SourceRef", {})
+                if isinstance(source_ref.get("Source"), str) and isinstance(measure.get("Property"), str):
+                    measure_refs.add((source_ref["Source"], measure["Property"]))
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for item in node:
+                walk(item)
+
+    walk(payload)
+    return refs, measure_refs
+
+
+def extract_pbit_model_insights(pbit_path):
+    """
+    Extract richer metadata from a .pbit file:
+    relationships, measures + definitions, pages, visuals, and unused assets.
+    """
+    schema = _load_pbit_json(pbit_path, "DataModelSchema")
+    layout = _load_pbit_json(pbit_path, "Report/Layout")
+
+    model = schema.get("model", schema.get("Model", {}))
+    raw_rels = model.get("relationships", model.get("Relationships", []))
+    raw_tables = model.get("tables", model.get("Tables", []))
+
+    table_columns = {}
+    table_measures = {}
+    measures = []
+    measure_dep_tables = set()
+    measure_dep_fields = set()
+
+    for table in raw_tables:
+        table_name = table.get("name", table.get("Name", ""))
+        if not table_name:
+            continue
+        cols = [c.get("name", c.get("Name", "")) for c in table.get("columns", table.get("Columns", []))]
+        cols = [c for c in cols if c]
+        table_columns[table_name] = cols
+
+        table_measure_list = []
+        for m in table.get("measures", table.get("Measures", [])):
+            m_name = m.get("name", m.get("Name", ""))
+            if not m_name:
+                continue
+            expr = m.get("expression", m.get("Expression", ""))
+            dep_tables, dep_fields = _parse_measure_dependencies(expr)
+            measure_dep_tables.update(dep_tables)
+            measure_dep_fields.update(dep_fields)
+            item = {"table": table_name, "name": m_name, "expression": expr or ""}
+            measures.append(item)
+            table_measure_list.append(m_name)
+        table_measures[table_name] = table_measure_list
+
+    relations = []
+    used_relation_fields = set()
+    used_relation_tables = set()
+    for r in raw_rels:
+        src_tbl = r.get("fromTable", r.get("SourceTable", "?"))
+        dst_tbl = r.get("toTable", r.get("ReferencedTable", "?"))
+        src_col = r.get("fromColumn", r.get("SourceColumn", "?"))
+        dst_col = r.get("toColumn", r.get("ReferencedColumn", "?"))
+        relations.append({"from": src_tbl, "to": dst_tbl, "from_column": src_col, "to_column": dst_col})
+        used_relation_fields.update({(src_tbl, src_col), (dst_tbl, dst_col)})
+        used_relation_tables.update({src_tbl, dst_tbl})
+
+    pages = []
+    used_visual_fields = set()
+    used_visual_measures = set()
+    used_visual_tables = set()
+
+    for section in layout.get("sections", []):
+        page_name = section.get("displayName") or section.get("name") or section.get("id") or "Página"
+        visuals = []
+        for visual in section.get("visualContainers", []):
+            config = _decode_json_from_raw((visual.get("config") or "{}").encode("utf-8")) if isinstance(visual.get("config"), str) else {}
+            query = _decode_json_from_raw((visual.get("query") or "{}").encode("utf-8")) if isinstance(visual.get("query"), str) else {}
+            refs_from_query, measure_refs_from_query = _collect_visual_references(query or {})
+            refs_from_config, measure_refs_from_config = _collect_visual_references(config or {})
+            refs = refs_from_query | refs_from_config
+            mrefs = measure_refs_from_query | measure_refs_from_config
+
+            used_visual_fields.update(refs)
+            used_visual_measures.update(mrefs)
+            used_visual_tables.update({t for t, _ in refs | mrefs})
+
+            visual_type = (
+                (config or {}).get("singleVisual", {}).get("visualType")
+                or visual.get("visualType")
+                or "unknown"
+            )
+            title = (config or {}).get("singleVisual", {}).get("vcObjects", {})
+            visuals.append(
+                {
+                    "id": visual.get("x"),
+                    "visual_type": visual_type,
+                    "position": {
+                        "x": visual.get("x"),
+                        "y": visual.get("y"),
+                        "width": visual.get("width"),
+                        "height": visual.get("height"),
+                    },
+                    "field_refs": [{"table": t, "field": f} for t, f in sorted(refs)],
+                    "measure_refs": [{"table": t, "measure": m} for t, m in sorted(mrefs)],
+                    "title_metadata": title,
+                }
+            )
+        pages.append(
+            {
+                "name": page_name,
+                "id": section.get("id"),
+                "visual_count": len(visuals),
+                "visuals": visuals,
+            }
+        )
+
+    all_tables = sorted(table_columns.keys())
+    used_tables = used_relation_tables | used_visual_tables | measure_dep_tables
+    unused_tables = [t for t in all_tables if t not in used_tables]
+
+    all_columns = {(table, col) for table, cols in table_columns.items() for col in cols}
+    all_measure_refs = {(m["table"], m["name"]) for m in measures}
+    used_columns = used_relation_fields | used_visual_fields | (measure_dep_fields - all_measure_refs)
+    used_measures = used_visual_measures | (measure_dep_fields & all_measure_refs)
+    unused_columns = [{"table": t, "column": c} for t, c in sorted(all_columns - used_columns)]
+    unused_measures = [{"table": t, "measure": m} for t, m in sorted(all_measure_refs - used_measures)]
+
+    return {
+        "table_count": len(all_tables),
+        "relationship_count": len(relations),
+        "measure_count": len(measures),
+        "page_count": len(pages),
+        "visual_count": sum(p["visual_count"] for p in pages),
+        "tables": all_tables,
+        "relations": relations,
+        "measures": measures,
+        "pages": pages,
+        "unused": {
+            "table_count": len(unused_tables),
+            "measure_count": len(unused_measures),
+            "column_count": len(unused_columns),
+            "tables": unused_tables,
+            "measures": unused_measures,
+            "columns": unused_columns,
+        },
+    }
 
 
 # ---------------------------------------------------------------------------
